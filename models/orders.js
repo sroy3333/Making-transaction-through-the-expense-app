@@ -4,7 +4,6 @@ const sequelize = require('../util/database');
 const Order = sequelize.define('order', {
     id: {
         type: Sequelize.STRING,
-        autoIncerment: true,
         allowNull: false,
         primaryKey: true
     },
