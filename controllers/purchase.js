@@ -1,5 +1,6 @@
 const Razorpay = require('razorpay');
 const Order = require('../models/orders')
+const uuid = require('uuid');
 
 
 const purchasepremium = async (req, res) => {
@@ -14,7 +15,8 @@ const purchasepremium = async (req, res) => {
             if(err) {
                 throw new Error(JSON.stringfy(err));
             }
-            req.user.createOrder({ orderid: order.id, status: 'PENDING'}).then(() => {
+            const orderId = uuid.v4();
+            req.user.createOrder({ id: orderId, orderid: order.id, status: 'PENDING'}).then(() => {
                 return res.status(201).json({ order, key_id : rzp.key_id});
             
             }).catch(err => {
@@ -27,22 +29,20 @@ const purchasepremium = async (req, res) => {
     }
 }
 
-const updateTransactionStatus = (req, res) => {
+const updateTransactionStatus = async (req, res) => {
     try {
         const { payment_id, order_id} = req.body;
-        Order.findOne({where : {orderid : order_id}}).then(order => {
-            order.update({ paymentid: payment_id, status: 'SUCCESSFUL'}).then(() => {
-                req.user.update({ ispremiumuser: true }).then(() => {
-                    return res.status(202).json({success: true, message: "Transaction Successful"});
-                }).catch((err) => {
-                    throw new Error(err);
-                })
-            }).catch((err) => {
-                throw new Error(err);
+        const order = await Order.findOne({where : {orderid : order_id}})
+            const promise1 = order.update({ paymentid: payment_id, status: 'SUCCESSFUL'})
+            const promise2 = req.user.update({ ispremiumuser: true })
+
+            Promise.all([promise1, promise2]).then(() => {
+                return res.status(202).json({success: true, message: "Transaction Successful"});
+            }).catch((error) => {
+                throw new Error(error)
             })
-        }).catch((err) => {
-            throw new Error(err);
-        })
+            
+                
     } catch(err) {
         console.log(err);
         res.status(403).json({ message: 'Something went wrong', error: err})
